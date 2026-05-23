@@ -1,0 +1,6 @@
+Canon EOS 5D, 0
+NIKON D700, 1
+Nikon750, 2
+Sony_RX100m7, 3
+Canon EOS 30D, 4
+SID sony full, 5

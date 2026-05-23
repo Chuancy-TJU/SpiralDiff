@@ -1,0 +1,120 @@
+trainer:
+  target: trainer.TrainerDifIR
+  
+  camera_name: 'combined' # 'Canon EOS 5D', 'NIKON D700', 'Nikon750', 'Sony_RX100m7', 'combined'
+  weight_l2: 1.0
+  weight_l1: 1.0
+  weight_logl1: 1.0
+
+model:
+  target: models.unet.UNetModelSwinNewLoRA
+  ckpt_path: ~
+  params:
+    image_size: 256
+    in_channels: 4
+    model_channels: 32
+    out_channels: 4
+    attention_resolutions: [256, 128, 64, 32, 16, 8]
+    dropout: 0
+    channel_mult: [1, 1, 2, 2, 4, 4]
+    num_res_blocks: [2, 2, 2, 2, 2, 2]
+    conv_resample: True
+    dims: 2
+    use_fp16: False
+    num_head_channels: 32
+    use_scale_shift_norm: True
+    resblock_updown: False
+    swin_depth: 2
+    swin_embed_dim: 192
+    window_size: 8
+    mlp_ratio: 4
+    cond_lq: True
+    lq_size: 256
+    norm_num_groups: 8
+    out_tanh: True
+    num_classes: 4
+    label_embed: False
+    lora_resolution: [256, 128, 64, 32, 16, 8]
+    basic_rank: 8
+    larger_rank_dim: False
+    adaptive_scaling: False
+    lora_ffn: False
+
+diffusion:
+  target: models.script_util.create_gaussian_diffusion_SpiralDiff
+  params:
+    sf: 1
+    schedule_name: exponential
+    schedule_kwargs:
+      power: 0.3
+    etas_end: 0.99
+    steps: 4  # 15
+    min_noise_level: 0.2
+    kappa: 2.0  # 2.0
+    weighted_mse: False
+    predict_type:  xstart #xstart # xstart 
+    timestep_respacing: ~
+    scale_factor: 1.0
+    normalize_input: True
+    latent_flag: True    # 这里符合公式
+    guidence_weight: 1
+    zt_min: 0.1
+
+data:
+  train:
+    type: rgb2raw
+    params:
+      mode: train
+      root: dataset/data/
+      patch_size: 256
+      camera_name: ${trainer.camera_name}
+      
+  val:
+    type: rgb2raw
+    params:
+      mode: val
+      root: ${data.train.params.root}
+      camera_name: ${trainer.camera_name}
+
+  test:
+    type: rgb2raw
+    params:
+      mode: test
+      root: ${data.train.params.root}
+      camera_name: ${trainer.camera_name}
+
+train:
+  # learning rate
+  lr: 1e-4                      # learning rate 
+  lr_min: 1e-5                      # learning rate 
+  lr_schedule: cosin
+  warmup_iterations: 1000
+  # dataloader
+  batch: [8, 4]                
+  microbatch: 4
+  num_workers: 4
+  prefetch_factor: 2            
+  # optimization settings
+  weight_decay: 0               
+  ema_rate: 0.999
+  iterations: 120000          # total iterations
+  # save logging
+  save_freq: 20000
+  log_freq: [200, 10000, 1]         # [training loss, training images, val images]
+  # loss_coef: [1.0, 0.1]         # [mse, lpips]
+  local_logging: True           # manually save images
+  tf_logging: False             # tensorboard logging
+  # validation settings
+  use_ema_val: True            
+  val_freq: ${train.save_freq}
+  val_y_channel: False
+  val_resolution: ${model.params.lq_size}
+  val_padding_mode: reflect
+  # training setting
+  use_amp: True                # amp training
+  seed: 123456                 # random seed
+  global_seeding: False
+  # model compile
+  compile:
+    flag: False
+    mode: reduce-overhead      # default, reduce-overhead

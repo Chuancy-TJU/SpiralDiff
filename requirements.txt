@@ -1,0 +1,16 @@
+torch==2.1.1
+# xformers==0.0.23
+scipy==1.9.3
+numpy
+opencv-python
+timm
+pandas
+pillow
+scikit-image
+loguru
+omegaconf
+tqdm
+einops
+natsort
+tensorboard
+rawpy
